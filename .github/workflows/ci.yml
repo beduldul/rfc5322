@@ -87,4 +87,4 @@ jobs:
         run: uv run --with email-validator python -m fuzz.run --seed 5322 --mutants 4000
 
       - name: Run test suite including differential tests
-        run: uv venv --python 3.12 && uv pip install -e ".[dev,fuzz]" && .venv/bin/python -m pytest tests/test_differential.py -q
+        run: uv run --with email-validator --with pytest python -m pytest tests/test_differential.py -q
