@@ -1,14 +1,16 @@
 [build-system]
-requires = ["setuptools>=68"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "rfc5322"
 version = "1.0.0"
-description = "RFC 5322 conformant email address parser — dependency-free, spec-tested, with full obsolete-grammar support."
-readme = "README.md"
+description = "RFC 5322 conformant email address parser — dependency-free, spec-tested, with full obsolete-grammar support"
+readme = { file = "README.md", content-type = "text/markdown" }
 requires-python = ">=3.12"
-license = { text = "MIT" }
+# SPDX expression (PEP 639). The text of the licence ships via license-files.
+license = "MIT"
+license-files = ["LICENSE"]
 authors = [{ name = "Abdul Afif Al Kaysan", email = "alkaysan07@gmail.com" }]
 keywords = [
     "rfc5322",
@@ -24,8 +26,8 @@ keywords = [
 ]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.12",
@@ -47,6 +49,7 @@ dev = [
 [project.urls]
 Homepage = "https://github.com/beduldul/rfc5322"
 Repository = "https://github.com/beduldul/rfc5322"
+Source = "https://github.com/beduldul/rfc5322"
 Issues = "https://github.com/beduldul/rfc5322/issues"
 Changelog = "https://github.com/beduldul/rfc5322/blob/main/CHANGELOG.md"
 
