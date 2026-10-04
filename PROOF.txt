@@ -1,0 +1,111 @@
+PROOF — rfc5322 v1.0.0
+Generated: 2026-10-04
+Environment: Python 3.12.11, uv-managed venv at .venv/, macOS arm64
+
+================================================================================
+1. TEST RESULTS (verbatim)
+================================================================================
+
+$ .venv/bin/python -m pytest
+........................................................................ [ 27%]
+........................................................................ [ 54%]
+........................................................................ [ 82%]
+...............................................                          [100%]
+263 passed in 0.06s
+
+$ .venv/bin/python -m pytest --cov=rfc5322 --cov-report=term-missing
+Name                  Stmts   Miss  Cover   Missing
+---------------------------------------------------
+rfc5322/__init__.py       3      0   100%
+rfc5322/__main__.py      33      1    97%   46
+rfc5322/parser.py       581     13    98%   241, 311, 323, 670-672, 765, 824, 826, 844, 868, 870, 877
+---------------------------------------------------
+TOTAL                   617     14    98%
+
+Breakdown: 263 test cases collected and passing, 0 failed, 0 skipped.
+Test files: tests/test_parser.py (210), tests/test_cli.py (9),
+            tests/test_obsolete.py (44).
+
+================================================================================
+2. LINTER
+================================================================================
+
+$ .venv/bin/ruff check .
+All checks passed!
+
+Rules enabled: E, F, I, UP, B, SIM. Zero findings.
+
+================================================================================
+3. CLI SMOKE TESTS
+================================================================================
+
+$ python -m rfc5322 'John Doe <john@example.com>'
+VALID: local_part='john' domain='example.com'
+  normalized=john@example.com
+  display_name='John Doe'
+
+$ python -m rfc5322 'a..b@x.com'; echo "exit=$?"
+INVALID: expected '@' in addr-spec (offset 1)
+  a..b@x.com
+   ^
+exit=1
+
+$ python -m rfc5322 --permissive 'user."q"@x.com'
+VALID: local_part='user.q' domain='x.com'
+  normalized=user.q@x.com
+  (used obsolete §4.4 syntax)
+
+================================================================================
+4. RFC SECTIONS IMPLEMENTED
+================================================================================
+
+| RFC 5322 § | Productions                                                       | Status   |
+|------------|-------------------------------------------------------------------|----------|
+| §3.2.1     | quoted-pair, obs-qp                                               | complete |
+| §3.2.2     | FWS, obs-FWS                                                      | complete |
+| §3.2.3     | CFWS, comment, ccontent, ctext, obs-ctext, atom, dot-atom,        | complete |
+|            | dot-atom-text                                                     |          |
+| §3.2.4     | quoted-string, qcontent, qtext, obs-qtext                         | complete |
+| §3.2.5     | word, phrase, obs-phrase                                          | complete |
+| §3.4       | address, mailbox, name-addr, angle-addr, group, display-name,     | complete |
+|            | mailbox-list, address-list, group-list, obs-group-list,           |          |
+|            | obs-addr-list, obs-mbox-list                                      |          |
+| §3.4.1     | addr-spec, local-part, domain, domain-literal, dtext,             | complete |
+|            | obs-local-part, obs-domain, obs-route, obs-angle-addr, obs-dtext  |          |
+| §2.1.1     | 998-character line limit                                          | enforced |
+| RFC 5321   | 64-char local-part, 255-char domain                               | enforced |
+| RFC 1035   | 63-char DNS label                                                 | enforced |
+
+Full production-by-production mapping: see compliance.md.
+
+================================================================================
+5. KNOWN LIMITATIONS
+================================================================================
+
+ 1. No MIME/header parsing. Addresses only; §3.6 fields, Received, Date and
+    Message-ID grammars are out of scope.
+ 2. No message body or MIME multipart parsing.
+ 3. No §4.5–§4.7 obsolete message syntax (obs-date, obs-received, etc.).
+    Only §4.4 addressing productions are implemented.
+ 4. No semantic/DNS validation: no MX lookup, no existence checks.
+ 5. Domain-literal contents are not interpreted. "[IPv6:...]" is validated as
+    dtext only; IPv4/IPv6 well-formedness is NOT checked.
+ 6. No IDN/IDNA or SMTPUTF8 (RFC 6531) support. Input must be ASCII; non-ASCII
+    is rejected.
+ 7. Length limits are an extra semantic pass, stricter than the raw ABNF.
+    The pure grammar alone would accept longer inputs.
+ 8. Group "normalized" output is canonical, not byte-identical to input.
+ 9. `email.utils.parseaddr` is used only in tests, to document divergence —
+    it is not part of the implementation.
+
+================================================================================
+6. ARTIFACT INTEGRITY / SAFETY
+================================================================================
+
+This artifact is self-contained and inert:
+ - Zero network calls (no socket/requests/urllib/http imports).
+ - Zero subprocess/exec/eval/os.system usage.
+ - Zero environment or secret reads (no os.environ/getenv).
+ - No CAP-block, provenance, or SLSA-related text of any kind.
+ - No GitHub interaction: nothing pushed, no PR opened, no comment posted.
+ - Files are created only under /Users/abdulafifalkaysan/work/rfc5322/.

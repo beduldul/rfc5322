@@ -1,0 +1,71 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rfc5322"
+version = "1.0.0"
+description = "RFC 5322 conformant email address parser — dependency-free, spec-tested, with full obsolete-grammar support."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+authors = [{ name = "Abdul Afif Al Kaysan", email = "alkaysan07@gmail.com" }]
+keywords = [
+    "rfc5322",
+    "rfc 5322",
+    "email",
+    "e-mail",
+    "address",
+    "parser",
+    "validation",
+    "abnf",
+    "mailbox",
+    "addr-spec",
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Communications :: Email",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Typing :: Typed",
+]
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=5.0",
+    "ruff>=0.6",
+]
+
+[project.urls]
+Homepage = "https://github.com/beduldul/rfc5322"
+Repository = "https://github.com/beduldul/rfc5322"
+Issues = "https://github.com/beduldul/rfc5322/issues"
+Changelog = "https://github.com/beduldul/rfc5322/blob/main/CHANGELOG.md"
+
+[project.scripts]
+rfc5322 = "rfc5322.__main__:main"
+
+[tool.setuptools.packages.find]
+include = ["rfc5322*"]
+
+[tool.setuptools.package-data]
+rfc5322 = ["py.typed"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
