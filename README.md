@@ -3,7 +3,7 @@
 [![CI](https://github.com/beduldul/rfc5322/actions/workflows/ci.yml/badge.svg)](https://github.com/beduldul/rfc5322/actions/workflows/ci.yml)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Coverage: 98%](https://img.shields.io/badge/coverage-98%25-brightgreen.svg)](https://github.com/beduldul/rfc5322)
+[![Coverage: 99%](https://img.shields.io/badge/coverage-99%25-brightgreen.svg)](https://github.com/beduldul/rfc5322)
 [![Ruff](https://img.shields.io/badge/lint-ruff-clean-brightgreen.svg)](https://github.com/astral-sh/ruff)
 
 **Python's stdlib `email.utils.parseaddr` is not RFC 5322 conformant — it silently
@@ -14,7 +14,7 @@ A hand-written recursive-descent parser for the RFC 5322 `address` grammar
 (§3.2–§3.4) **plus every obsolete §4.4 production**. Zero runtime dependencies,
 stdlib only, no regexes used for grammar recognition.
 
-**Status:** v1.0.0 — 263 tests passing, 98% coverage, CI green on Python 3.12 and
+**Status:** v1.0.0 — 288 tests passing, 99% coverage, CI green on Python 3.12 and
 3.13, MIT licensed. Not yet on PyPI (install from GitHub, below).
 
 ```python
@@ -201,6 +201,67 @@ Honest list — this parses *addresses*, not messages:
 - **`group` `normalized` output is canonical, not byte-identical** to the input
   (display names are decoded but not re-quoted).
 
+## Differential testing
+
+The comparison table above is hand-written, so it is exactly the kind of
+evidence that collapses when probed. `fuzz/` is a **seeded differential
+harness** that checks the claim mechanically against three references:
+
+| Reference | What it is | DNS? |
+|---|---|---|
+| `email.utils.parseaddr` | the stdlib scanner the claim is about | no |
+| `email.headerregistry.Address(addr_spec=…)` | CPython's strict addr-spec parser | no |
+| `email_validator` | the widely-used third-party validator | **disabled** |
+
+`email_validator` performs DNS/MX lookups by default; the harness passes
+`check_deliverability=False` so the comparison is **syntax only** and never
+touches the network. `email_validator` is a **dev/test-only** dependency
+(`uv run --with email-validator`, or the `[fuzz]` extra) — the package itself
+still has zero runtime dependencies.
+
+The corpus is **4160 inputs** (160 hand-written + 4000 byte-level mutants),
+generated with `random.Random(5322)`. Re-run it deterministically with:
+
+```sh
+uv run --with email-validator python -m fuzz.run --seed 5322 --mutants 4000
+uv run --with email-validator python -m fuzz.run --replay '<input>'   # reproduce one failure
+```
+
+Measured results (seed 5322, CPython 3.12):
+
+| Reference | agree | we reject / it accepts | we accept / it rejects | both accept, output differs |
+|---|---:|---:|---:|---:|
+| `email.utils.parseaddr` | 2554 | **1360** | **105** | 141 |
+| `email.headerregistry.Address` | 3727 | 177 | 196 | 60 |
+| `email_validator` | 3325 | 70 | 754 | 11 |
+
+**What the numbers mean.** They are not a scoreboard. Against `parseaddr` the
+harness confirms the central claim: it accepts 1360 RFC-invalid inputs the
+parser rejects (`a..b@example.com`, `.user@example.com`, `a b@example.com`,
+`@example.com`, `"unbalanced@x.com`, …) and returns `('', '')` for 105 valid
+ones it cannot represent (domain literals `user@[192.0.2.1]`, CFWS comments,
+groups). Against `headerregistry` the parser agrees on 89.6% and the residual
+divergences are its scope limits (it rejects groups, comments and bare
+display names) plus length/ASCII policy. Against `email_validator` the parser
+agrees on 79.9%; **the 754 "we accept / it rejects" cases are not parser
+bugs** — `email_validator` deliberately rejects domain literals (§3.4.1),
+CFWS comments (§3.2.3), quoted local parts and single-label domains, and it
+applies IDNA/deliverability semantics that RFC 5322 does not.
+
+**Bugs the harness found (fixed).** Adversarial fuzzing found three real
+defects, all in the same family — inputs accepted only under `strict=False`
+that did **not** set `Address.obsolete`, violating the documented invariant:
+
+1. `user. name@x.com` (obs-local-part, §4.4) parsed with `obsolete=False`.
+2. `john@example\r\n .com` (obs-domain, §4.4) parsed with `obsolete=False`.
+3. `Group: a@b.com,;` (obs-mbox-list, §3.4) parsed with `obsolete=False`, and
+   `parse_mailbox_list` did not implement `obs-mbox-list` at all despite the
+   coverage table claiming it complete.
+
+Each has a regression test in `tests/test_obsolete.py`. The pinned counts are
+asserted in `tests/test_differential.py`, so a future change that shifts them
+turns CI red rather than being silently absorbed.
+
 ## Development
 
 ```sh
@@ -210,7 +271,7 @@ uv pip install -e ".[dev]"
 .venv/bin/ruff check .
 ```
 
-Current status: **263 tests passing, 98% statement coverage, ruff clean.**
+Current status: **288 tests passing, 99% statement coverage, ruff clean.**
 See [`PROOF.txt`](PROOF.txt) for the verbatim run and [`CONTRIBUTING.md`](CONTRIBUTING.md)
 before opening a PR.
 

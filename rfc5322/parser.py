@@ -26,7 +26,7 @@ ever mutated; the parser only reads ``text``.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Final
 
 __all__ = [
@@ -774,6 +774,26 @@ def _validate_lengths(addr: Address) -> None:
             )
 
 
+def _infer_obsolete(text: str, addr: Address) -> Address:
+    """Set ``obsolete=True`` when the input is only valid under §4.4.
+
+    ``strict=False`` enables the obsolete productions; a given input may still
+    be purely modern.  Rather than guess which production fired, we settle the
+    question empirically: if the same text is *rejected* by the strict grammar
+    then an obsolete production was required, so the flag must be set.  This
+    keeps the documented invariant ``accepted only under strict=False =>
+    Address.obsolete is True`` true for every production, including the ones
+    that are recognised but do not currently call :meth:`_note_obsolete`.
+    """
+    if addr.obsolete:
+        return addr
+    try:
+        parse_address(text, strict=True)
+    except AddressSyntaxError:
+        return replace(addr, obsolete=True)
+    return addr
+
+
 def parse_address(text: str, *, strict: bool = True) -> Address:
     """Parse a single RFC 5322 ``address`` (a mailbox or a group).
 
@@ -801,12 +821,12 @@ def parse_address(text: str, *, strict: bool = True) -> Address:
     if group is not None:
         _finish(p, text)
         _validate_lengths(group)
-        return group
+        return group if strict else _infer_obsolete(text, group)
     p = _Parser(text, strict=strict)
     addr = p._parse_mailbox(text)
     _finish(p, text)
     _validate_lengths(addr)
-    return addr
+    return addr if strict else _infer_obsolete(text, addr)
 
 
 def is_valid_address(text: str, *, strict: bool = True) -> bool:
@@ -859,7 +879,24 @@ def parse_address_list(text: str, *, strict: bool = True) -> tuple[Address, ...]
             continue
         break
     _finish(p, text)
+    if not strict and _list_requires_obsolete(text, kind="address"):
+        out = [replace(a, obsolete=True) for a in out]
     return tuple(out)
+
+
+def _list_requires_obsolete(text: str, *, kind: str) -> bool:
+    """Return ``True`` if ``text`` is not a valid list under the strict grammar.
+
+    Used by the permissive list parsers to decide whether §4.4 syntax was
+    required.  ``kind`` is ``"address"`` or ``"mailbox"``.  A strict parse
+    never recurses into this probe, so there is no infinite regress.
+    """
+    fn = parse_address_list if kind == "address" else parse_mailbox_list
+    try:
+        fn(text, strict=True)
+    except AddressSyntaxError:
+        return True
+    return False
 
 
 def parse_mailbox_list(text: str, *, strict: bool = True) -> tuple[Address, ...]:
@@ -871,6 +908,17 @@ def parse_mailbox_list(text: str, *, strict: bool = True) -> tuple[Address, ...]
     p = _Parser(text, strict=strict)
     out: list[Address] = []
     p._parse_cfws()
+    # obs-mbox-list = *([CFWS] ",") mailbox *("," [mailbox / CFWS])
+    if not strict:
+        while True:
+            m = p._mark()
+            p._parse_cfws()
+            if p._peek() == ",":
+                p.pos += 1
+                p.obsolete = True
+                continue
+            p._restore(m)
+            break
     while True:
         p._parse_cfws()
         if p._eof():
@@ -879,7 +927,15 @@ def parse_mailbox_list(text: str, *, strict: bool = True) -> tuple[Address, ...]
         p._parse_cfws()
         if p._peek() == ",":
             p.pos += 1
+            p._parse_cfws()
+            if p._eof():
+                if strict:
+                    raise p._fail("trailing comma in mailbox-list")
+                p.obsolete = True
+                break
             continue
         break
     _finish(p, text)
+    if not strict and _list_requires_obsolete(text, kind="mailbox"):
+        out = [replace(a, obsolete=True) for a in out]
     return tuple(out)

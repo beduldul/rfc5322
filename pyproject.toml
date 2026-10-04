@@ -45,6 +45,11 @@ dev = [
     "pytest-cov>=5.0",
     "ruff>=0.6",
 ]
+# Dev/test-only: the differential harness in fuzz/ compares against
+# email_validator. Never a runtime dependency — `dependencies` above stays [].
+fuzz = [
+    "email-validator>=2.0",
+]
 
 [project.urls]
 Homepage = "https://github.com/beduldul/rfc5322"

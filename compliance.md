@@ -76,7 +76,7 @@ Legend: **strict** = accepted in default mode; **obs** = accepted only with
 | `group-list = mailbox-list / CFWS / obs-group-list` | strict | `_parse_group` | `test_group_basic`, `test_group_empty` |
 | `obs-group-list = 1*([CFWS] ",") [CFWS]` | obs | `_parse_group` | `test_obs_group_list_*` |
 | `obs-addr-list = *([CFWS] ",") address *("," [address / CFWS])` | obs | `parse_address_list` | `test_obs_addr_list_*` |
-| `obs-mbox-list = *([CFWS] ",") mailbox *("," [mailbox / CFWS])` | obs | `parse_mailbox_list` | leading/trailing comma tests |
+| `obs-mbox-list = *([CFWS] ",") mailbox *("," [mailbox / CFWS])` | obs | `parse_mailbox_list` | `test_obs_mbox_list_*` |
 
 ## §3.4.1 — addr-spec
 

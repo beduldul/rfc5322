@@ -163,3 +163,69 @@ def test_group_member_invalid_rolls_back() -> None:
 def test_is_valid_handles_group_and_errors() -> None:
     assert is_valid_address("G:a@x.com;") is True
     assert is_valid_address("G:a@x.com") is False
+
+
+# ---------------------------------------------------------------------------
+# Regressions found by the differential fuzz harness (fuzz/).
+#
+# Invariant: an input accepted only under ``strict=False`` must report
+# ``obsolete is True``.  These inputs are valid per §4.4 (obs-local-part,
+# obs-domain, obs-FWS, obs-mbox-list) but the parser previously parsed them
+# without setting the flag.
+# ---------------------------------------------------------------------------
+
+OBSOLETE_ONLY = [
+    "user. name@x.com",          # obs-local-part: word "." word with CFWS
+    "user .name@x.com",          # obs-local-part
+    "john@example\r\n .com",     # obs-domain: atom *("." atom)
+    "user@ex .ample.com",        # obs-domain
+    'user."quoted"@example.com',  # obs-local-part: dot-atom / quoted-string mix
+]
+
+
+@pytest.mark.parametrize("text", OBSOLETE_ONLY)
+def test_obsolete_flag_set_when_only_valid_permissively(text: str) -> None:
+    addr = parse_address(text, strict=False)
+    assert addr.obsolete is True
+    with pytest.raises(AddressSyntaxError):
+        parse_address(text, strict=True)
+
+
+def test_obsolete_flag_group_trailing_comma() -> None:
+    # group-list -> mailbox-list -> obs-mbox-list: "a@b.com," is *("," [mailbox]).
+    addr = parse_address("Group: a@b.com,;", strict=False)
+    assert addr.obsolete is True
+    with pytest.raises(AddressSyntaxError):
+        parse_address("Group: a@b.com,;", strict=True)
+
+
+def test_obsolete_flag_false_for_modern_list() -> None:
+    from rfc5322 import parse_address_list
+
+    modern = parse_address_list("a@b.com, c@d.com", strict=False)
+    assert all(a.obsolete is False for a in modern)
+
+
+# ---------------------------------------------------------------------------
+# obs-mbox-list (§3.4) — was documented "complete" but not implemented.
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "text",
+    [",a@x.com", "a@x.com,", ",a@x.com,", ",,a@x.com", "a@x.com, b@y.com"],
+)
+def test_obs_mbox_list_permissive(text: str) -> None:
+    from rfc5322 import parse_mailbox_list
+
+    out = parse_mailbox_list(text, strict=False)
+    assert out
+    assert out[0].normalized == "a@x.com"
+
+
+@pytest.mark.parametrize("text", [",a@x.com", "a@x.com,", ",,a@x.com"])
+def test_obs_mbox_list_strict_rejected(text: str) -> None:
+    from rfc5322 import parse_mailbox_list
+
+    with pytest.raises(AddressSyntaxError):
+        parse_mailbox_list(text, strict=True)
