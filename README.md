@@ -1,6 +1,7 @@
 # rfc5322
 
 [![CI](https://github.com/beduldul/rfc5322/actions/workflows/ci.yml/badge.svg)](https://github.com/beduldul/rfc5322/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/rfc5322.svg)](https://pypi.org/project/rfc5322/)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Coverage: 99%](https://img.shields.io/badge/coverage-99%25-brightgreen.svg)](https://github.com/beduldul/rfc5322)
@@ -14,8 +15,8 @@ A hand-written recursive-descent parser for the RFC 5322 `address` grammar
 (§3.2–§3.4) **plus every obsolete §4.4 production**. Zero runtime dependencies,
 stdlib only, no regexes used for grammar recognition.
 
-**Status:** v1.0.0 — 288 tests passing, 99% coverage, CI green on Python 3.12 and
-3.13, MIT licensed. Not yet on PyPI (install from GitHub, below).
+**Status:** v1.0.1 — 288 tests passing, 99% coverage, CI green on Python 3.12 and
+3.13, MIT licensed. Published on PyPI as `rfc5322`.
 
 ```python
 >>> from rfc5322 import is_valid_address
@@ -44,15 +45,22 @@ or an error with the byte offset". Divergences are locked down by the
 
 ## Install
 
-**Not yet on PyPI — install from GitHub for now.**
+```sh
+pip install rfc5322
+```
+
+To track `main` instead of a release:
 
 ```sh
 # From GitHub (latest main):
 pip install "git+https://github.com/beduldul/rfc5322.git"
 # or with uv:
 uv pip install "git+https://github.com/beduldul/rfc5322.git"
+```
 
-# From a clone (editable, with dev tools):
+From a clone (editable, with dev tools):
+
+```sh
 git clone https://github.com/beduldul/rfc5322.git
 cd rfc5322
 uv venv && uv pip install -e ".[dev]"

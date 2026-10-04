@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "rfc5322"
-version = "1.0.0"
+version = "1.0.1"
 description = "RFC 5322 conformant email address parser — dependency-free, spec-tested, with full obsolete-grammar support"
 readme = { file = "README.md", content-type = "text/markdown" }
 requires-python = ">=3.12"
